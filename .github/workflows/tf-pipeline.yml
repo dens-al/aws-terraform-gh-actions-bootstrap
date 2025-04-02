@@ -1,0 +1,82 @@
+name: "FusionTwin Dev Terraform Deployment"
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'teams/FTP-dev/*'
+  push:
+    branches:
+      - main
+    paths:
+      - 'teams/FTP-dev/*'
+
+env:
+  TF_DIR: "teams/FTP-dev"
+  #TF_VAR_admin_account_id: ${{ secrets.FTP_DEV_ADMIN_ACCOUNT_ID }}
+  AWS_ROLE_ARN: "arn:aws:iam::104203586765:role/GitHubActionsRole"
+  AWS_REGION: "eu-west-1"
+
+permissions:
+  id-token: write
+  actions: read
+  contents: write
+
+jobs:
+   terraform:
+     runs-on: ubuntu-latest
+
+     steps:
+       - name: Checkout Repository
+         uses: actions/checkout@v4
+
+       - name: Configure AWS Credentials
+         uses: aws-actions/configure-aws-credentials@8c3f20df09ac63af7b3ae3d7c91f105f857d8497
+         with:
+           # role-to-assume: arn:aws:iam::${{ secrets.TEAM_A_PROD_ACCOUNT_ID }}:role/GitHubActionsRole
+           role-to-assume: ${{ env.AWS_ROLE_ARN }}
+           aws-region: ${{ env.AWS_REGION }}
+
+       - name: Set up tf-summarize
+         uses: kishaningithub/setup-tf-summarize@b752490b135f74e59d82e656a1dab7f11a937f84
+
+       - name: Get Terraform version
+         run: echo "TF_VERSION=$(cat .terraform-version)" >> "$GITHUB_ENV"
+
+       - name: Setup Terraform
+         uses: hashicorp/setup-terraform@v3.1.1
+         with:
+           terraform_version: "${{ env.TF_VERSION }}"
+
+       - name: Terraform Init
+         working-directory: ${{ env.TF_DIR }}
+         run: terraform init
+
+       - name: Terraform Plan
+         id: plan
+         working-directory: ${{ env.TF_DIR }}
+         run: terraform plan -out=tfplan
+
+       - name: Terraform Show
+         id: show
+         working-directory: ${{ env.TF_DIR }}
+         run: terraform show -json tfplan > tfplan.plan
+
+       - name: TF Summarize
+         id: summarize
+         working-directory: ${{ env.TF_DIR }}
+         run: |
+           tf-summarize -v 
+           jq '.' tfplan.plan | tf-summarize -md > default-summary.md
+           cat default-summary.md
+           cat default-summary.md >> $GITHUB_STEP_SUMMARY
+
+       - name: Terraform Apply
+         id: apply
+         if: github.ref == 'refs/heads/main'
+         working-directory: ${{ env.TF_DIR }}
+         run: |
+           terraform apply -auto-approve -parallelism=50 tfplan
+           exitcode="$?"
+           echo "exitcode=$exitcode" >> $GITHUB_OUTPUT
