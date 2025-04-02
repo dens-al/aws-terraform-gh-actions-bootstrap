@@ -5,17 +5,16 @@ on:
     branches:
       - main
     paths:
-      - 'teams/FTP-dev/*'
+      - 'terraform/*'
   push:
     branches:
       - main
     paths:
-      - 'teams/FTP-dev/*'
+      - 'terraform/*'
 
 env:
-  TF_DIR: "teams/FTP-dev"
-  #TF_VAR_admin_account_id: ${{ secrets.FTP_DEV_ADMIN_ACCOUNT_ID }}
-  AWS_ROLE_ARN: "arn:aws:iam::104203586765:role/GitHubActionsRole"
+  TF_DIR: "terraform/*"
+  AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
   AWS_REGION: "eu-west-1"
 
 permissions:
