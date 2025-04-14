@@ -124,3 +124,6 @@ jobs:
 | GitHubRepo | Repository name/pattern | aws-terraform-gh-actions-bootstrap |
 | GitHubRoleName | IAM role name | GitHubActionsRole |
 
+## AWS Organisation
+
+In case of using `AWS Organisation` it is good idea to use [Telophase](https://docs.telophase.dev/introduction) which can use CloudFormation or Terraform code as bootstrap script
